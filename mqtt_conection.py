@@ -81,13 +81,19 @@ def configure_broker():
 
 @app.route('/connect_mqtt', methods=['POST'])
 def connect_mqtt():
-    """Conecta el 'escucha' para ver el flujo de datos [cite: 37, 71]"""
     ip = request.json.get('ip', 'localhost')
     port = int(request.json.get('port', 1883))
+    # Capturamos el usuario y pass de la interfaz
+    user = request.json.get('username') 
+    pw = request.json.get('password')
     
     try:
+        # IMPORTANTE: Configuramos las credenciales antes de conectar
+        if user and pw:
+            mqtt_client.username_pw_set(user, pw)
+            
         mqtt_client.connect(ip, port)
-        mqtt_client.subscribe("#") # Se suscribe a todo para ver el flujo 
+        mqtt_client.subscribe("#") 
         mqtt_client.loop_start()
         return jsonify({"status": "connected"})
     except Exception as e:

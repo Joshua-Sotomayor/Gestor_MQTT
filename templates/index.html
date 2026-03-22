@@ -115,22 +115,45 @@
 
     // Función para conectar y monitorear
     async function connectMQTT() {
-        const ip = document.getElementById('ip_address').value || 'localhost';
-        const port = document.getElementById('port').value || '1883';
-        const secure = document.getElementById('secure_connection').checked;
+    // 1. Capturamos los valores de los inputs de la interfaz
+    // Si están vacíos, usamos los valores por defecto de la guía [cite: 450, 403, 465]
+    const ip = document.getElementById('ip_address').value || 'localhost';
+    const port = document.getElementById('port').value || '1883';
+    const username = document.getElementById('username').value;
+    const password = document.getElementById('password').value;
+    const secure = document.getElementById('secure_connection').checked;
 
-        logToConsole(`Intentando conectar a ${ip}:${port}...`);
+    // 2. Informamos en la Mini CMD el inicio del proceso
+    logToConsole(`Intentando conectar a ${ip}:${port} con el usuario: ${username || 'Anónimo'}...`);
+
+    try {
+        // 3. Enviamos la petición POST al backend de Flask
         const response = await fetch('/connect_mqtt', {
             method: 'POST',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({ip, port, secure})
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                ip: ip,
+                port: port,
+                username: username, // Enviamos las credenciales para la autenticación [cite: 55]
+                password: password,
+                secure: secure
+            })
         });
+
         const data = await response.json();
-        if(data.status === 'connected') {
+
+        // 4. Procesamos la respuesta del servidor
+        if (data.status === 'connected') {
             logToConsole("✅ Conectado al broker. Monitoreando todos los tópicos (#).");
         } else {
-            logToConsole(`❌ Error: ${data.message}`);
+            // Si el broker rechaza la conexión por credenciales incorrectas [cite: 627, 628]
+            logToConsole(`❌ Error de conexión: ${data.message}`);
         }
+    } catch (error) {
+        logToConsole(`❌ Error de red o servidor: ${error.message}`);
+    }
     }
 
     function logToConsole(text) {
