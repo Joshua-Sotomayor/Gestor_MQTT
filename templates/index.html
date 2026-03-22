@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MQTT Mosquitto Manager</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
+    <style>
+        body { background-color: #f4f7f6; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        .card { border: none; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); margin-bottom: 20px; }
+        .console { 
+            background-color: #1e1e1e; 
+            color: #00ff00; 
+            height: 300px; 
+            overflow-y: scroll; 
+            padding: 15px; 
+            font-family: 'Courier New', Courier, monospace; 
+            border-radius: 8px;
+            font-size: 0.9rem;
+        }
+        .status-on { color: #28a745; font-weight: bold; }
+        .status-off { color: #dc3545; font-weight: bold; }
+        .btn-custom { border-radius: 8px; transition: all 0.3s; }
+    </style>
+</head>
+<body>
+
+<div class="container py-4">
+    <header class="pb-3 mb-4 border-bottom">
+        <span class="fs-4">🛠️ Mosquitto Broker Automation</span>
+    </header>
+
+    <div class="row">
+        <div class="col-md-5">
+            <div class="card p-3">
+                <h5>Control del Servicio</h5>
+                <p>Estado actual: <span id="service-status" class="status-off">Desconocido</span></p>
+                <div class="d-flex gap-2">
+                    <button class="btn btn-success w-100 btn-custom" onclick="manageService('start')">Iniciar Broker</button>
+                    <button class="btn btn-danger w-100 btn-custom" onclick="manageService('stop')">Detener Broker</button>
+                </div>
+            </div>
+
+            <div class="card p-3">
+                <h5>Gestión de Usuarios</h5>
+                <div class="mb-2">
+                    <input type="text" id="username" class="form-control mb-2" placeholder="Usuario">
+                    <input type="password" id="password" class="form-control mb-2" placeholder="Contraseña">
+                    <button class="btn btn-primary w-100 btn-custom" onclick="addUser()">Añadir/Actualizar Usuario</button>
+                </div>
+            </div>
+
+            <div class="card p-3">
+                <h5>Configuración de Red</h5>
+                <input type="text" id="ip_address" class="form-control mb-2" placeholder="Dirección IP (ej. 127.0.0.1)">
+                <input type="number" id="port" class="form-control mb-2" placeholder="Puerto (Defecto: 1883)">
+                <div class="form-check form-switch mb-3">
+                    <input class="form-check-input" type="checkbox" id="secure_connection">
+                    <label class="form-check-label" for="secure_connection">Conexión Segura (TLS/SSL)</label>
+                </div>
+                <button class="btn btn-dark w-100 btn-custom" onclick="connectMQTT()">Conectar Monitor</button>
+            </div>
+        </div>
+
+        <div class="col-md-7">
+            <div class="card p-3 h-100">
+                <h5>Flujo de Datos en Tiempo Real (CMD)</h5>
+                <div id="console-output" class="console">
+                    <div class="text-secondary">> Esperando conexión...</div>
+                </div>
+                <button class="btn btn-outline-secondary mt-2 btn-sm" onclick="clearConsole()">Limpiar Consola</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    const socket = io();
+    const consoleDiv = document.getElementById('console-output');
+
+    // Escuchar mensajes MQTT desde el servidor
+    socket.on('mqtt_data', function(data) {
+        const timestamp = new Date().toLocaleTimeString();
+        const entry = document.createElement('div');
+        entry.innerHTML = `<span style="color: #888;">[${timestamp}]</span> <strong>${data.topic}:</strong> ${data.message}`;
+        consoleDiv.appendChild(entry);
+        consoleDiv.scrollTop = consoleDiv.scrollHeight;
+    });
+
+    // Función para manejar el servicio (sc start/stop)
+    async function manageService(action) {
+        logToConsole(`Ejecutando: sc ${action} mosquitto...`);
+        const response = await fetch(`/service/${action}`);
+        const data = await response.json();
+        logToConsole(data.output);
+        document.getElementById('service-status').innerText = (action === 'start') ? 'EJECUTÁNDOSE' : 'DETENIDO';
+        document.getElementById('service-status').className = (action === 'start') ? 'status-on' : 'status-off';
+    }
+
+    // Función para añadir usuarios
+    async function addUser() {
+        const username = document.getElementById('username').value;
+        const password = document.getElementById('password').value;
+        if(!username || !password) return alert("Llena todos los campos");
+
+        const response = await fetch('/add_user', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({username, password})
+        });
+        const data = await response.json();
+        logToConsole(`Usuario ${username}: ${data.output}`);
+    }
+
+    // Función para conectar y monitorear
+    async function connectMQTT() {
+        const ip = document.getElementById('ip_address').value || 'localhost';
+        const port = document.getElementById('port').value || '1883';
+        const secure = document.getElementById('secure_connection').checked;
+
+        logToConsole(`Intentando conectar a ${ip}:${port}...`);
+        const response = await fetch('/connect_mqtt', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ip, port, secure})
+        });
+        const data = await response.json();
+        if(data.status === 'connected') {
+            logToConsole("✅ Conectado al broker. Monitoreando todos los tópicos (#).");
+        } else {
+            logToConsole(`❌ Error: ${data.message}`);
+        }
+    }
+
+    function logToConsole(text) {
+        const entry = document.createElement('div');
+        entry.innerHTML = `<span style="color: #00bcd4;">> ${text}</span>`;
+        consoleDiv.appendChild(entry);
+        consoleDiv.scrollTop = consoleDiv.scrollHeight;
+    }
+
+    function clearConsole() {
+        consoleDiv.innerHTML = '<div class="text-secondary">> Consola limpia.</div>';
+    }
+</script>
+
+</body>
+</html>

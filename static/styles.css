@@ -1,0 +1,108 @@
+/* Paleta de colores inspirada en tecnología y automatización */
+:root {
+    --primary-color: #007bff;
+    --success-color: #28a745;
+    --danger-color: #dc3545;
+    --dark-bg: #121212;
+    --terminal-green: #00ff41;
+    --card-shadow: 0 8px 24px rgba(0,0,0,0.15);
+}
+
+body {
+    background-color: #e9ecef;
+    font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    color: #333;
+}
+
+/* Contenedores y Tarjetas */
+.card {
+    border: none;
+    border-radius: 15px;
+    box-shadow: var(--card-shadow);
+    transition: transform 0.2s ease;
+    background: #ffffff;
+    margin-bottom: 25px;
+}
+
+.card:hover {
+    transform: translateY(-5px);
+}
+
+.card h5 {
+    font-weight: 700;
+    color: #495057;
+    border-bottom: 2px solid #f8f9fa;
+    padding-bottom: 10px;
+    margin-bottom: 20px;
+}
+
+/* La Mini CMD (Consola) */
+.console { 
+    background-color: var(--dark-bg); 
+    color: var(--terminal-green); 
+    height: 450px; 
+    overflow-y: auto; 
+    padding: 20px; 
+    font-family: 'Consolas', 'Monaco', 'Courier New', monospace; 
+    border-radius: 12px;
+    font-size: 0.85rem;
+    line-height: 1.5;
+    border: 1px solid #333;
+    box-shadow: inset 0 0 10px #000;
+}
+
+/* Personalización del Scrollbar de la consola */
+.console::-webkit-scrollbar {
+    width: 8px;
+}
+.console::-webkit-scrollbar-track {
+    background: #1e1e1e;
+}
+.console::-webkit-scrollbar-thumb {
+    background: #444;
+    border-radius: 10px;
+}
+
+/* Indicadores de Estado */
+.status-on { 
+    color: var(--success-color); 
+    background: rgba(40, 167, 69, 0.1);
+    padding: 2px 8px;
+    border-radius: 5px;
+}
+
+.status-off { 
+    color: var(--danger-color); 
+    background: rgba(220, 53, 69, 0.1);
+    padding: 2px 8px;
+    border-radius: 5px;
+}
+
+/* Botones y Entradas */
+.btn-custom { 
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    padding: 10px;
+}
+
+.form-control {
+    border-radius: 8px;
+    border: 1px solid #dee2e6;
+    padding: 12px;
+}
+
+.form-control:focus {
+    box-shadow: 0 0 0 0.25rem rgba(0, 123, 255, 0.25);
+    border-color: var(--primary-color);
+}
+
+/* Animación para nuevos mensajes */
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateX(-10px); }
+    to { opacity: 1; transform: translateX(0); }
+}
+
+.console div {
+    animation: fadeIn 0.3s ease forwards;
+}
